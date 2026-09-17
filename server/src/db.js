@@ -74,8 +74,17 @@ addColumn('subscription_status', "TEXT NOT NULL DEFAULT 'trialing'");
 addColumn('trial_ends_at', "TEXT");
 addColumn('current_period_end', 'TEXT');
 
-const trialDays = Number(process.env.TRIAL_DAYS) || 7;
+const envTrialDays = Number(process.env.TRIAL_DAYS);
+const trialDays = Number.isFinite(envTrialDays) ? envTrialDays : 7;
 const backfillTrial = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000).toISOString();
 db.prepare("UPDATE users SET trial_ends_at = ? WHERE trial_ends_at IS NULL").run(backfillTrial);
+
+// Teste grátis desativado (TRIAL_DAYS <= 0): corta o acesso de quem ainda estava
+// dentro do período de teste, além de zerar o período para novos cadastros.
+if (trialDays <= 0) {
+  db.prepare(
+    "UPDATE users SET trial_ends_at = datetime('now') WHERE subscription_status = 'trialing' AND trial_ends_at > datetime('now')"
+  ).run();
+}
 
 module.exports = db;

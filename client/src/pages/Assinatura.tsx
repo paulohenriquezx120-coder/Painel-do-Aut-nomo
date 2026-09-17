@@ -105,8 +105,8 @@ export default function Assinatura() {
 
         {!trialActive && subscription?.status !== 'active' && (
           <>
-            <div className="mb-1 text-sm font-medium text-red-600">Seu teste grátis acabou</div>
-            <p className="mb-4 text-sm text-ink/60">Assine para continuar usando o estoque, vendas e orçamentos.</p>
+            <div className="mb-1 text-sm font-medium text-ink">Assine para começar a usar</div>
+            <p className="mb-4 text-sm text-ink/60">Escolha um plano para acessar o estoque, vendas e orçamentos.</p>
           </>
         )}
 

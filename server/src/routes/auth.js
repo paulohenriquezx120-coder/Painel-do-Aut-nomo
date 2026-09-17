@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
 const { requireAuth, JWT_SECRET } = require('../middleware/auth');
+const { hasActiveAccess } = require('../accessControl');
 
 const router = express.Router();
 
@@ -14,7 +15,6 @@ const COOKIE_OPTS = {
 };
 
 function publicUser(user) {
-  const isTrialing = user.subscription_status === 'trialing' && new Date(user.trial_ends_at) > new Date();
   return {
     id: user.id,
     name: user.name,
@@ -24,12 +24,13 @@ function publicUser(user) {
       status: user.subscription_status,
       trialEndsAt: user.trial_ends_at,
       currentPeriodEnd: user.current_period_end,
-      hasAccess: isTrialing || user.subscription_status === 'active',
+      hasAccess: hasActiveAccess(user),
     },
   };
 }
 
-const TRIAL_DAYS = Number(process.env.TRIAL_DAYS) || 7;
+const envTrialDays = Number(process.env.TRIAL_DAYS);
+const TRIAL_DAYS = Number.isFinite(envTrialDays) ? envTrialDays : 7;
 
 router.post('/register', (req, res) => {
   const { name, businessName, email, password } = req.body || {};
