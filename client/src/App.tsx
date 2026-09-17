@@ -4,6 +4,8 @@ import { AuthProvider, useAuth } from './AuthContext';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import EsqueciSenha from './pages/EsqueciSenha';
+import RedefinirSenha from './pages/RedefinirSenha';
 import Estoque from './pages/Estoque';
 import Orcamentos from './pages/Orcamentos';
 import Vendas from './pages/Vendas';
@@ -71,6 +73,8 @@ export default function App() {
             </PublicOnly>
           }
         />
+        <Route path="/esqueci-senha" element={<EsqueciSenha />} />
+        <Route path="/redefinir-senha" element={<RedefinirSenha />} />
         <Route path="/*" element={<PrivateArea />} />
       </Routes>
     </AuthProvider>

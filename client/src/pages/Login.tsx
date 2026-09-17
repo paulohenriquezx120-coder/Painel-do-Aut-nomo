@@ -53,7 +53,7 @@ export default function Login() {
             />
           </label>
 
-          <label className="mb-5 block text-sm">
+          <label className="mb-2 block text-sm">
             <span className="mb-1 block font-medium text-ink/80">Senha</span>
             <input
               type="password"
@@ -64,6 +64,12 @@ export default function Login() {
               placeholder="••••••••"
             />
           </label>
+
+          <p className="mb-5 text-right text-xs">
+            <Link to="/esqueci-senha" className="font-medium text-brand-700 hover:underline">
+              Esqueci minha senha
+            </Link>
+          </p>
 
           <button
             type="submit"

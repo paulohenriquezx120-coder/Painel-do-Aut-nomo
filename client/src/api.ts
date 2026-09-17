@@ -103,6 +103,10 @@ export const api = {
     request<{ user: User }>('/auth/login', { method: 'POST', body: JSON.stringify(payload) }),
   logout: () => request<{ ok: true }>('/auth/logout', { method: 'POST' }),
   me: () => request<{ user: User }>('/auth/me'),
+  forgotPassword: (email: string) =>
+    request<{ message: string }>('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+  resetPassword: (token: string, password: string) =>
+    request<{ ok: true }>('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, password }) }),
 
   listProducts: (q = '') =>
     request<{ products: Product[]; summary: ProductSummary }>(

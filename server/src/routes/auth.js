@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -5,6 +6,9 @@ const db = require('../db');
 const { requireAuth, JWT_SECRET } = require('../middleware/auth');
 const { hasActiveAccess } = require('../accessControl');
 const asyncHandler = require('../asyncHandler');
+const { sendPasswordResetEmail } = require('../email');
+
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
 const router = express.Router();
 
@@ -81,6 +85,56 @@ router.get('/me', requireAuth, asyncHandler(async (req, res) => {
   const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId);
   if (!user) return res.status(401).json({ error: 'Não autenticado' });
   res.json({ user: publicUser(user) });
+}));
+
+const GENERIC_FORGOT_MESSAGE = 'Se esse e-mail tiver uma conta, enviamos um link de redefinição.';
+
+router.post('/forgot-password', asyncHandler(async (req, res) => {
+  const { email } = req.body || {};
+  if (!email) return res.status(400).json({ error: 'Informe o e-mail.' });
+
+  const user = await db.prepare('SELECT id, email FROM users WHERE email = ?').get(email.toLowerCase().trim());
+  if (user) {
+    const token = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    await db
+      .prepare('INSERT INTO password_resets (user_id, token_hash, expires_at) VALUES (?, ?, ?)')
+      .run(user.id, tokenHash, expiresAt);
+
+    const resetUrl = `${CLIENT_URL}/redefinir-senha?token=${token}`;
+    sendPasswordResetEmail(user.email, resetUrl).catch((err) =>
+      console.error('Erro ao enviar e-mail de redefinição:', err)
+    );
+  }
+
+  // Resposta sempre igual, mesmo se o e-mail não existir — evita expor quais contas existem.
+  res.json({ message: GENERIC_FORGOT_MESSAGE });
+}));
+
+router.post('/reset-password', asyncHandler(async (req, res) => {
+  const { token, password } = req.body || {};
+  if (!token || !password) return res.status(400).json({ error: 'Dados incompletos.' });
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'A senha precisa ter pelo menos 6 caracteres.' });
+  }
+
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+  const reset = await db
+    .prepare(
+      "SELECT * FROM password_resets WHERE token_hash = ? AND used = 0 AND expires_at > datetime('now')"
+    )
+    .get(tokenHash);
+
+  if (!reset) {
+    return res.status(400).json({ error: 'Link inválido ou expirado. Peça uma nova redefinição.' });
+  }
+
+  const hash = bcrypt.hashSync(password, 10);
+  await db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, reset.user_id);
+  await db.prepare('UPDATE password_resets SET used = 1 WHERE id = ?').run(reset.id);
+
+  res.json({ ok: true });
 }));
 
 module.exports = router;
