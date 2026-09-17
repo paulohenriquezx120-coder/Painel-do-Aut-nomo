@@ -1,0 +1,8 @@
+<svg width="640" height="140" viewBox="0 0 640 140" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="0" width="140" height="140" rx="30" fill="#1e4d4a"/>
+  <path d="M47 35 H80 C100 35 116 51 116 71 C116 91 100 107 80 107 H60 V127 H47 Z M60 51 V91 H80 C92 91 100 82 100 71 C100 60 92 51 80 51 Z" fill="#ffffff"/>
+  <circle cx="98" cy="103" r="6.5" fill="#7fd4bd"/>
+
+  <text x="172" y="66" font-family="Inter, 'Segoe UI', Arial, sans-serif" font-size="42" font-weight="700" fill="#173d3b">Painel</text>
+  <text x="172" y="106" font-family="Inter, 'Segoe UI', Arial, sans-serif" font-size="42" font-weight="700" fill="#173d3b">do Autônomo</text>
+</svg>

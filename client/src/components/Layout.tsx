@@ -22,9 +22,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       <aside className="flex shrink-0 flex-col border-b border-brand-100 bg-white md:w-60 md:border-b-0 md:border-r">
         <div className="flex items-center justify-between gap-2 px-4 py-4 md:border-b md:border-brand-100 md:px-5 md:py-5">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-brand-700 text-sm font-bold text-white">
-              P
-            </div>
+            <img src="/icon.svg" alt="" className="h-8 w-8 shrink-0 rounded-md" />
             <span className="text-base font-semibold text-brand-800">Painel do Autônomo</span>
           </div>
           <button

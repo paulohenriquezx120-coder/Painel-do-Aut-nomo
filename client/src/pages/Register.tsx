@@ -29,9 +29,7 @@ export default function Register() {
     <div className="flex min-h-screen items-center justify-center bg-[#f5f7f6] px-4 py-8">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-brand-700 text-base font-bold text-white">
-            P
-          </div>
+          <img src="/icon.svg" alt="" className="h-10 w-10 rounded-md" />
           <h1 className="text-lg font-semibold text-brand-800">Painel do Autônomo</h1>
           <p className="text-sm text-ink/60">Comece grátis, leva menos de um minuto</p>
         </div>
