@@ -94,7 +94,7 @@ export default function Estoque() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-semibold text-ink">Estoque</h1>
           <p className="text-sm text-ink/60">Controle seus produtos e quantidades.</p>
@@ -115,7 +115,7 @@ export default function Estoque() {
         </div>
       </div>
 
-      <div className="mb-6 grid grid-cols-3 gap-4">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-lg border border-brand-100 bg-white p-4">
           <div className="text-xs font-medium uppercase text-ink/50">Produtos cadastrados</div>
           <div className="mt-1 text-2xl font-semibold text-ink">{summary.total}</div>
@@ -135,7 +135,7 @@ export default function Estoque() {
       {showForm && (
         <form onSubmit={onCreate} className="mb-6 rounded-lg border border-brand-100 bg-white p-4">
           {error && <div className="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <label className="text-sm">
               <span className="mb-1 block font-medium text-ink/80">Nome*</span>
               <input
@@ -207,8 +207,8 @@ export default function Estoque() {
         className="mb-4 w-full max-w-sm rounded-md border border-brand-200 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
       />
 
-      <div className="overflow-hidden rounded-lg border border-brand-100 bg-white">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-lg border border-brand-100 bg-white">
+        <table className="w-full min-w-[720px] text-sm">
           <thead>
             <tr className="border-b border-brand-100 bg-brand-50/60 text-left text-xs font-semibold uppercase text-ink/60">
               <th className="px-4 py-3">Produto</th>

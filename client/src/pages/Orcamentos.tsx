@@ -93,11 +93,11 @@ export default function Orcamentos() {
         <p className="text-sm text-ink/60">Monte um orçamento e baixe em PDF na hora.</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <form onSubmit={onSubmit} className="rounded-lg border border-brand-100 bg-white p-4">
           {error && <div className="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
-          <div className="mb-3 grid grid-cols-2 gap-3">
+          <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="text-sm">
               <span className="mb-1 block font-medium text-ink/80">Seu negócio</span>
               <input
@@ -149,19 +149,19 @@ export default function Orcamentos() {
 
           <div className="space-y-2">
             {items.map((item, idx) => (
-              <div key={idx} className="grid grid-cols-[1fr_70px_90px_28px] gap-2">
+              <div key={idx} className="grid grid-cols-[1fr_50px_70px_24px] gap-1.5 sm:grid-cols-[1fr_70px_90px_28px] sm:gap-2">
                 <input
                   value={item.name}
                   onChange={(e) => updateItem(idx, { name: e.target.value })}
                   placeholder="Descrição do item"
-                  className="rounded-md border border-brand-200 px-2 py-1.5 text-sm"
+                  className="min-w-0 rounded-md border border-brand-200 px-2 py-1.5 text-sm"
                 />
                 <input
                   type="number"
                   min={0}
                   value={item.quantity}
                   onChange={(e) => updateItem(idx, { quantity: Number(e.target.value) })}
-                  className="rounded-md border border-brand-200 px-2 py-1.5 text-sm"
+                  className="min-w-0 rounded-md border border-brand-200 px-2 py-1.5 text-sm"
                 />
                 <input
                   type="number"
@@ -169,13 +169,13 @@ export default function Orcamentos() {
                   step="0.01"
                   value={item.unitPrice}
                   onChange={(e) => updateItem(idx, { unitPrice: Number(e.target.value) })}
-                  className="rounded-md border border-brand-200 px-2 py-1.5 text-sm"
+                  className="min-w-0 rounded-md border border-brand-200 px-2 py-1.5 text-sm"
                 />
                 <button
                   type="button"
                   onClick={() => removeItem(idx)}
                   disabled={items.length === 1}
-                  className="rounded-md border border-brand-200 text-ink/50 hover:bg-brand-50 disabled:opacity-30"
+                  className="min-w-0 rounded-md border border-brand-200 text-ink/50 hover:bg-brand-50 disabled:opacity-30"
                 >
                   ×
                 </button>
@@ -255,8 +255,8 @@ export default function Orcamentos() {
 
       <div className="mt-8">
         <h2 className="mb-3 text-sm font-semibold text-ink">Histórico de orçamentos</h2>
-        <div className="overflow-hidden rounded-lg border border-brand-100 bg-white">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-lg border border-brand-100 bg-white">
+          <table className="w-full min-w-[480px] text-sm">
             <thead>
               <tr className="border-b border-brand-100 bg-brand-50/60 text-left text-xs font-semibold uppercase text-ink/60">
                 <th className="px-4 py-3">Cliente</th>

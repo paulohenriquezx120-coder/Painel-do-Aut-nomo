@@ -122,8 +122,8 @@ export default function Vendas() {
         <p className="text-sm text-ink/60">Registre vendas e acompanhe seu lucro.</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
-        <form onSubmit={onSubmit} className="col-span-1 h-fit rounded-lg border border-brand-100 bg-white p-4">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <form onSubmit={onSubmit} className="h-fit rounded-lg border border-brand-100 bg-white p-4 lg:col-span-1">
           <h2 className="mb-3 text-sm font-semibold text-ink">Registrar venda</h2>
           {error && <div className="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
@@ -229,9 +229,9 @@ export default function Vendas() {
           </button>
         </form>
 
-        <div className="col-span-2 space-y-6">
+        <div className="space-y-6 lg:col-span-2">
           <div>
-            <div className="mb-3 flex gap-2">
+            <div className="mb-3 flex flex-wrap gap-2">
               {periods.map((p) => (
                 <button
                   key={p.value}
@@ -247,7 +247,7 @@ export default function Vendas() {
               ))}
             </div>
 
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div className="rounded-lg border border-brand-100 bg-white p-3">
                 <div className="text-xs font-medium uppercase text-ink/50">Total vendido</div>
                 <div className="mt-1 text-lg font-semibold text-ink">{fmtBRL(summary.totalSold)}</div>
@@ -274,7 +274,7 @@ export default function Vendas() {
               <h3 className="mb-3 text-sm font-semibold text-ink">Mais vendidos no período</h3>
               <div className="space-y-2">
                 {ranking.slice(0, 5).map((r, idx) => (
-                  <div key={r.productName} className="flex items-center justify-between text-sm">
+                  <div key={r.productName} className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-2">
                       <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700">
                         {idx + 1}
@@ -294,8 +294,8 @@ export default function Vendas() {
             </div>
           )}
 
-          <div className="overflow-hidden rounded-lg border border-brand-100 bg-white">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto rounded-lg border border-brand-100 bg-white">
+            <table className="w-full min-w-[600px] text-sm">
               <thead>
                 <tr className="border-b border-brand-100 bg-brand-50/60 text-left text-xs font-semibold uppercase text-ink/60">
                   <th className="px-4 py-3">Produto</th>

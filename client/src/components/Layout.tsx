@@ -18,22 +18,30 @@ export default function Layout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
 
   return (
-    <div className="flex min-h-screen bg-[#f5f7f6]">
-      <aside className="flex w-60 shrink-0 flex-col border-r border-brand-100 bg-white">
-        <div className="flex items-center gap-2 border-b border-brand-100 px-5 py-5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-brand-700 text-sm font-bold text-white">
-            P
+    <div className="flex min-h-screen flex-col bg-[#f5f7f6] md:flex-row">
+      <aside className="flex shrink-0 flex-col border-b border-brand-100 bg-white md:w-60 md:border-b-0 md:border-r">
+        <div className="flex items-center justify-between gap-2 px-4 py-4 md:border-b md:border-brand-100 md:px-5 md:py-5">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-brand-700 text-sm font-bold text-white">
+              P
+            </div>
+            <span className="text-base font-semibold text-brand-800">Painel do Autônomo</span>
           </div>
-          <span className="text-base font-semibold text-brand-800">Painel do Autônomo</span>
+          <button
+            onClick={() => logout()}
+            className="rounded-md border border-brand-200 px-2.5 py-1 text-xs font-medium text-brand-700 hover:bg-brand-50 md:hidden"
+          >
+            Sair
+          </button>
         </div>
 
-        <nav className="flex-1 space-y-1 px-3 py-4">
+        <nav className="flex gap-1 overflow-x-auto border-t border-brand-100 px-3 py-2 md:flex-1 md:flex-col md:space-y-1 md:border-t-0 md:py-4">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `block rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                `shrink-0 rounded-md px-3 py-2 text-sm font-medium transition-colors md:block ${
                   isActive
                     ? 'bg-brand-700 text-white'
                     : 'text-ink/70 hover:bg-brand-50 hover:text-brand-800'
@@ -43,9 +51,19 @@ export default function Layout({ children }: { children: ReactNode }) {
               {item.label}
             </NavLink>
           ))}
+          <NavLink
+            to="/assinatura"
+            className={({ isActive }) =>
+              `shrink-0 rounded-md px-3 py-2 text-sm font-medium transition-colors md:hidden ${
+                isActive ? 'bg-brand-700 text-white' : 'text-ink/70 hover:bg-brand-50 hover:text-brand-800'
+              }`
+            }
+          >
+            Assinatura
+          </NavLink>
         </nav>
 
-        <div className="border-t border-brand-100 px-4 py-4">
+        <div className="hidden border-t border-brand-100 px-4 py-4 md:block">
           <div className="mb-2 truncate text-sm font-medium text-ink">{user?.businessName}</div>
           <div className="mb-3 truncate text-xs text-ink/50">{user?.email}</div>
           <NavLink
@@ -64,7 +82,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       </aside>
 
       <main className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-6xl px-6 py-8">{children}</div>
+        <div className="mx-auto max-w-6xl px-4 py-5 md:px-6 md:py-8">{children}</div>
       </main>
     </div>
   );
