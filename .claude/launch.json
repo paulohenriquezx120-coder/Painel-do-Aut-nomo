@@ -1,0 +1,9 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "gestor-facil-client",
+      "url": "http://localhost:5173"
+    }
+  ]
+}
