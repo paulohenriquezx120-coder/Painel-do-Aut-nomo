@@ -13,6 +13,7 @@ const salesRoutes = require('./routes/sales');
 const quoteRoutes = require('./routes/quotes');
 const billingRoutes = require('./routes/billing');
 const stripeWebhook = require('./routes/stripeWebhook');
+const asaasWebhook = require('./routes/asaasWebhook');
 const { requireAuth } = require('./middleware/auth');
 const { requireActiveAccess } = require('./middleware/subscription');
 const asyncHandler = require('./asyncHandler');
@@ -33,6 +34,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use('/api/auth', authRoutes);
+app.use('/api/billing/asaas-webhook', asaasWebhook);
 app.use('/api/billing', billingRoutes);
 app.use('/api/products', requireAuth, asyncHandler(requireActiveAccess), productRoutes);
 app.use('/api/sales', requireAuth, asyncHandler(requireActiveAccess), salesRoutes);

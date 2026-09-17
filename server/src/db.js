@@ -104,6 +104,8 @@ async function migrate() {
   await addColumn('subscription_status', "TEXT NOT NULL DEFAULT 'trialing'");
   await addColumn('trial_ends_at', 'TEXT');
   await addColumn('current_period_end', 'TEXT');
+  await addColumn('asaas_customer_id', 'TEXT');
+  await addColumn('asaas_subscription_id', 'TEXT');
 
   const envTrialDays = Number(process.env.TRIAL_DAYS);
   const trialDays = Number.isFinite(envTrialDays) ? envTrialDays : 7;

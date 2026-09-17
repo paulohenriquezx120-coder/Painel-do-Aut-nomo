@@ -65,7 +65,6 @@ export type Plan = {
   currency: string;
   interval: string;
   intervalCount: number;
-  paymentLinkUrl: string;
 };
 
 class ApiError extends Error {
@@ -137,9 +136,9 @@ export const api = {
   deleteQuote: (id: number) => request<{ ok: true }>(`/quotes/${id}`, { method: 'DELETE' }),
 
   getPlans: () => request<{ plans: Plan[] }>('/billing/plans'),
-  createPortalSession: () => request<{ url: string }>('/billing/portal', { method: 'POST' }),
-  verifyCheckoutSession: (sessionId: string) =>
-    request<{ ok: true }>('/billing/verify-session', { method: 'POST', body: JSON.stringify({ sessionId }) }),
+  subscribe: (payload: { planId: string; cpfCnpj: string }) =>
+    request<{ invoiceUrl: string }>('/billing/subscribe', { method: 'POST', body: JSON.stringify(payload) }),
+  cancelSubscription: () => request<{ ok: true }>('/billing/cancel', { method: 'POST' }),
 };
 
 export { ApiError };

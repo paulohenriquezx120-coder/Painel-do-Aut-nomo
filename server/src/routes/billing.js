@@ -1,12 +1,15 @@
 const express = require('express');
 const db = require('../db');
 const stripe = require('../stripe');
+const asaas = require('../asaas');
 const { requireAuth } = require('../middleware/auth');
 const { syncUserFromSubscription } = require('../billingSync');
+const asyncHandler = require('../asyncHandler');
 
 const router = express.Router();
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+const CURRENCY = process.env.ASAAS_PLAN_CURRENCY || process.env.STRIPE_PLAN_CURRENCY || 'brl';
 
 function ensureStripeConfigured(res) {
   if (!stripe) {
@@ -18,23 +21,29 @@ function ensureStripeConfigured(res) {
   return true;
 }
 
-// Dados estáticos dos planos: não dependem da chave secreta, então funcionam mesmo
-// antes do backend ter acesso à API do Stripe (o checkout usa Payment Links prontos).
-const CURRENCY = process.env.STRIPE_PLAN_CURRENCY || 'brl';
+function ensureAsaasConfigured(res) {
+  if (!asaas.isConfigured()) {
+    res.status(503).json({ error: 'Pagamento ainda não configurado. Defina ASAAS_API_KEY no servidor.' });
+    return false;
+  }
+  return true;
+}
 
-function plan(id, label, amountEnv, intervalCount, linkEnv) {
-  const amount = Number(process.env[amountEnv]) || 0;
-  const paymentLinkUrl = process.env[linkEnv];
-  if (!amount || !paymentLinkUrl) return null;
-  return { id, label, amount, currency: CURRENCY, interval: 'month', intervalCount, paymentLinkUrl };
+// Planos: 'monthly' cobra todo mês, 'quarterly' cobra a cada 3 meses.
+const PLAN_CONFIG = {
+  monthly: { label: 'Mensal', amountEnv: 'ASAAS_PLAN_MONTHLY_AMOUNT', intervalCount: 1, cycle: 'MONTHLY' },
+  quarterly: { label: 'Trimestral', amountEnv: 'ASAAS_PLAN_QUARTERLY_AMOUNT', intervalCount: 3, cycle: 'QUARTERLY' },
+};
+
+function planFromEnv(id) {
+  const cfg = PLAN_CONFIG[id];
+  const amount = Number(process.env[cfg.amountEnv]) || 0;
+  if (!amount) return null;
+  return { id, label: cfg.label, amount, currency: CURRENCY, interval: 'month', intervalCount: cfg.intervalCount };
 }
 
 router.get('/plans', (req, res) => {
-  const plans = [
-    plan('monthly', 'Mensal', 'STRIPE_PLAN_MONTHLY_AMOUNT', 1, 'STRIPE_PLAN_MONTHLY_LINK'),
-    plan('quarterly', 'Trimestral', 'STRIPE_PLAN_QUARTERLY_AMOUNT', 3, 'STRIPE_PLAN_QUARTERLY_LINK'),
-  ].filter(Boolean);
-
+  const plans = Object.keys(PLAN_CONFIG).map(planFromEnv).filter(Boolean);
   if (plans.length === 0) {
     return res.status(503).json({ error: 'Planos ainda não configurados no servidor.' });
   }
@@ -42,6 +51,102 @@ router.get('/plans', (req, res) => {
 });
 
 router.use(requireAuth);
+
+function onlyDigits(value) {
+  return String(value || '').replace(/\D/g, '');
+}
+
+function todayISODate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// Cria (ou reaproveita) o cliente e a assinatura no Asaas e devolve o link de
+// pagamento hospedado (cartão/Pix/boleto) para o front redirecionar o usuário.
+router.post(
+  '/subscribe',
+  asyncHandler(async (req, res) => {
+    if (!ensureAsaasConfigured(res)) return;
+
+    const planId = req.body?.planId;
+    const cfg = PLAN_CONFIG[planId];
+    if (!cfg) return res.status(400).json({ error: 'Plano inválido.' });
+
+    const cpfCnpj = onlyDigits(req.body?.cpfCnpj);
+    if (cpfCnpj.length !== 11 && cpfCnpj.length !== 14) {
+      return res.status(400).json({ error: 'Informe um CPF ou CNPJ válido.' });
+    }
+
+    const amount = Number(process.env[cfg.amountEnv]) || 0;
+    if (!amount) return res.status(503).json({ error: 'Plano ainda não configurado no servidor.' });
+
+    const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId);
+
+    let asaasCustomerId = user.asaas_customer_id;
+    try {
+      if (!asaasCustomerId) {
+        const existing = await asaas.findCustomerByCpfCnpj(cpfCnpj);
+        if (existing) {
+          asaasCustomerId = existing.id;
+        } else {
+          const customer = await asaas.createCustomer({
+            name: user.business_name || user.name,
+            email: user.email,
+            cpfCnpj,
+            externalReference: String(user.id),
+          });
+          asaasCustomerId = customer.id;
+        }
+        await db.prepare('UPDATE users SET asaas_customer_id = ? WHERE id = ?').run(asaasCustomerId, user.id);
+      }
+
+      const subscription = await asaas.createSubscription({
+        customer: asaasCustomerId,
+        billingType: 'UNDEFINED',
+        cycle: cfg.cycle,
+        value: amount / 100,
+        nextDueDate: todayISODate(),
+        description: `Painel do Autônomo - ${cfg.label}`,
+        externalReference: String(user.id),
+      });
+
+      await db
+        .prepare('UPDATE users SET asaas_subscription_id = ? WHERE id = ?')
+        .run(subscription.id, user.id);
+
+      const payments = await asaas.listSubscriptionPayments(subscription.id);
+      const firstPayment = payments.data?.[0];
+      if (!firstPayment?.invoiceUrl) {
+        return res.status(502).json({ error: 'Não foi possível gerar o link de pagamento.' });
+      }
+
+      res.json({ invoiceUrl: firstPayment.invoiceUrl });
+    } catch (err) {
+      console.error('Erro criando assinatura no Asaas:', err.data || err.message);
+      res.status(err.status && err.status < 500 ? 400 : 500).json({
+        error: err.data?.errors?.[0]?.description || 'Não foi possível iniciar a assinatura.',
+      });
+    }
+  })
+);
+
+router.post(
+  '/cancel',
+  asyncHandler(async (req, res) => {
+    if (!ensureAsaasConfigured(res)) return;
+    const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId);
+    if (!user.asaas_subscription_id) {
+      return res.status(400).json({ error: 'Você não tem uma assinatura para cancelar.' });
+    }
+    try {
+      await asaas.cancelSubscription(user.asaas_subscription_id);
+      await db.prepare("UPDATE users SET subscription_status = 'canceled' WHERE id = ?").run(user.id);
+      res.json({ ok: true });
+    } catch (err) {
+      console.error('Erro cancelando assinatura no Asaas:', err.data || err.message);
+      res.status(500).json({ error: 'Não foi possível cancelar a assinatura.' });
+    }
+  })
+);
 
 // Confirma a assinatura assim que o cliente volta do Payment Link, sem depender de webhook
 // (útil em desenvolvimento local, onde o Stripe não consegue chamar localhost).

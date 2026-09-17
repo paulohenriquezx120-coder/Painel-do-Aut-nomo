@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { api, Plan } from '../api';
+import { FormEvent, useEffect, useState } from 'react';
+import { api, ApiError, Plan } from '../api';
 import { useAuth } from '../AuthContext';
 
 function fmtBRL(cents: number, currency: string) {
@@ -8,13 +7,6 @@ function fmtBRL(cents: number, currency: string) {
 }
 function fmtDate(d: string) {
   return new Date(d).toLocaleDateString('pt-BR');
-}
-
-function planCheckoutUrl(plan: Plan, userId: number, email: string) {
-  const url = new URL(plan.paymentLinkUrl);
-  url.searchParams.set('client_reference_id', String(userId));
-  url.searchParams.set('prefilled_email', email);
-  return url.toString();
 }
 
 function planIntervalLabel(plan: Plan) {
@@ -26,9 +18,11 @@ function planIntervalLabel(plan: Plan) {
 export default function Assinatura() {
   const { user, refresh, logout } = useAuth();
   const [plans, setPlans] = useState<Plan[]>([]);
+  const [cpfCnpj, setCpfCnpj] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [params] = useSearchParams();
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [canceling, setCanceling] = useState(false);
+  const [waitingPayment, setWaitingPayment] = useState(false);
 
   useEffect(() => {
     api
@@ -37,29 +31,41 @@ export default function Assinatura() {
       .catch(() => setPlans([]));
   }, []);
 
-  useEffect(() => {
-    const sessionId = params.get('session_id');
-    if (params.get('success') && sessionId) {
-      api.verifyCheckoutSession(sessionId).finally(() => refresh());
-    } else if (params.get('success')) {
-      refresh();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const subscription = user?.subscription;
   const trialActive =
     subscription?.status === 'trialing' && subscription.trialEndsAt && new Date(subscription.trialEndsAt) > new Date();
 
-  const openPortal = async () => {
+  const subscribe = async (e: FormEvent, planId: string) => {
+    e.preventDefault();
     setError('');
-    setLoading(true);
+    const digits = cpfCnpj.replace(/\D/g, '');
+    if (digits.length !== 11 && digits.length !== 14) {
+      setError('Informe um CPF ou CNPJ válido.');
+      return;
+    }
+    setLoadingPlan(planId);
     try {
-      const res = await api.createPortalSession();
-      window.location.href = res.url;
-    } catch (err: any) {
-      setError(err.message || 'Não foi possível abrir o portal.');
-      setLoading(false);
+      const res = await api.subscribe({ planId, cpfCnpj: digits });
+      setWaitingPayment(true);
+      window.open(res.invoiceUrl, '_blank', 'noopener');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Não foi possível iniciar a assinatura.');
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
+
+  const cancel = async () => {
+    if (!confirm('Cancelar sua assinatura?')) return;
+    setError('');
+    setCanceling(true);
+    try {
+      await api.cancelSubscription();
+      await refresh();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Não foi possível cancelar a assinatura.');
+    } finally {
+      setCanceling(false);
     }
   };
 
@@ -68,11 +74,6 @@ export default function Assinatura() {
       <h1 className="mb-1 text-xl font-semibold text-ink">Assinatura</h1>
       <p className="mb-6 text-sm text-ink/60">Gerencie o acesso ao Painel do Autônomo.</p>
 
-      {params.get('canceled') && (
-        <div className="mb-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-700">
-          Checkout cancelado. Você pode tentar novamente quando quiser.
-        </div>
-      )}
       {error && <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
       <div className="rounded-lg border border-brand-100 bg-white p-6">
@@ -85,11 +86,11 @@ export default function Assinatura() {
               </p>
             )}
             <button
-              onClick={openPortal}
-              disabled={loading}
-              className="rounded-md border border-brand-200 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50 disabled:opacity-60"
+              onClick={cancel}
+              disabled={canceling}
+              className="rounded-md border border-red-200 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
             >
-              Gerenciar assinatura
+              {canceling ? 'Cancelando...' : 'Cancelar assinatura'}
             </button>
           </>
         )}
@@ -111,29 +112,52 @@ export default function Assinatura() {
         )}
 
         {subscription?.status !== 'active' && (
-          <div className="mt-2 grid grid-cols-2 gap-3">
-            {plans.length === 0 && (
-              <div className="col-span-2 rounded-md bg-brand-50 p-4 text-sm text-ink/50">
-                Nenhum plano configurado pelo administrador ainda.
+          <>
+            <label className="mb-4 block text-sm">
+              <span className="mb-1 block font-medium text-ink/80">CPF ou CNPJ</span>
+              <input
+                value={cpfCnpj}
+                onChange={(e) => setCpfCnpj(e.target.value)}
+                className="w-full rounded-md border border-brand-200 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                placeholder="Necessário para gerar a cobrança"
+              />
+            </label>
+
+            {waitingPayment && (
+              <div className="mb-4 rounded-md bg-brand-50 px-3 py-2 text-sm text-ink">
+                Abrimos a página de pagamento em outra aba. Depois de pagar, seu acesso libera automaticamente em
+                alguns instantes —{' '}
+                <button onClick={() => refresh()} className="font-medium text-brand-700 hover:underline">
+                  clique aqui para verificar
+                </button>
+                .
               </div>
             )}
-            {plans.map((p) => (
-              <div key={p.id} className="rounded-md bg-brand-50 p-4">
-                <div className="mb-1 text-xs font-semibold uppercase text-ink/50">{p.label}</div>
-                <div className="mb-3">
-                  <span className="text-2xl font-bold text-brand-800">{fmtBRL(p.amount, p.currency)}</span>
-                  <span className="text-sm text-ink/60"> {planIntervalLabel(p)}</span>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {plans.length === 0 && (
+                <div className="col-span-1 rounded-md bg-brand-50 p-4 text-sm text-ink/50 sm:col-span-2">
+                  Nenhum plano configurado pelo administrador ainda.
                 </div>
-                <a
-                  href={user ? planCheckoutUrl(p, user.id, user.email) : undefined}
-                  aria-disabled={!user}
-                  className="block w-full rounded-md bg-brand-700 px-4 py-2 text-center text-sm font-medium text-white hover:bg-brand-800"
-                >
-                  Assinar
-                </a>
-              </div>
-            ))}
-          </div>
+              )}
+              {plans.map((p) => (
+                <div key={p.id} className="rounded-md bg-brand-50 p-4">
+                  <div className="mb-1 text-xs font-semibold uppercase text-ink/50">{p.label}</div>
+                  <div className="mb-3">
+                    <span className="text-2xl font-bold text-brand-800">{fmtBRL(p.amount, p.currency)}</span>
+                    <span className="text-sm text-ink/60"> {planIntervalLabel(p)}</span>
+                  </div>
+                  <button
+                    onClick={(e) => subscribe(e, p.id)}
+                    disabled={loadingPlan !== null}
+                    className="block w-full rounded-md bg-brand-700 px-4 py-2 text-center text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
+                  >
+                    {loadingPlan === p.id ? 'Gerando...' : 'Assinar'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
