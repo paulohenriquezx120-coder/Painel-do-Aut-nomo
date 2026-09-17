@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const db = require('../db');
 const { requireAuth, JWT_SECRET } = require('../middleware/auth');
 const { hasActiveAccess } = require('../accessControl');
+const asyncHandler = require('../asyncHandler');
 
 const router = express.Router();
 
@@ -32,7 +33,7 @@ function publicUser(user) {
 const envTrialDays = Number(process.env.TRIAL_DAYS);
 const TRIAL_DAYS = Number.isFinite(envTrialDays) ? envTrialDays : 7;
 
-router.post('/register', (req, res) => {
+router.post('/register', asyncHandler(async (req, res) => {
   const { name, businessName, email, password } = req.body || {};
   if (!name || !businessName || !email || !password) {
     return res.status(400).json({ error: 'Preencha todos os campos.' });
@@ -40,46 +41,46 @@ router.post('/register', (req, res) => {
   if (password.length < 6) {
     return res.status(400).json({ error: 'A senha precisa ter pelo menos 6 caracteres.' });
   }
-  const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email.toLowerCase().trim());
+  const existing = await db.prepare('SELECT id FROM users WHERE email = ?').get(email.toLowerCase().trim());
   if (existing) {
     return res.status(409).json({ error: 'Já existe uma conta com este e-mail.' });
   }
   const hash = bcrypt.hashSync(password, 10);
   const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
-  const info = db
+  const info = await db
     .prepare(
       'INSERT INTO users (name, business_name, email, password_hash, trial_ends_at) VALUES (?, ?, ?, ?, ?)'
     )
     .run(name.trim(), businessName.trim(), email.toLowerCase().trim(), hash, trialEndsAt);
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(info.lastInsertRowid);
+  const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(info.lastInsertRowid);
   const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '30d' });
   res.cookie('token', token, COOKIE_OPTS);
   res.json({ user: publicUser(user) });
-});
+}));
 
-router.post('/login', (req, res) => {
+router.post('/login', asyncHandler(async (req, res) => {
   const { email, password } = req.body || {};
   if (!email || !password) {
     return res.status(400).json({ error: 'Informe e-mail e senha.' });
   }
-  const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email.toLowerCase().trim());
+  const user = await db.prepare('SELECT * FROM users WHERE email = ?').get(email.toLowerCase().trim());
   if (!user || !bcrypt.compareSync(password, user.password_hash)) {
     return res.status(401).json({ error: 'E-mail ou senha incorretos.' });
   }
   const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '30d' });
   res.cookie('token', token, COOKIE_OPTS);
   res.json({ user: publicUser(user) });
-});
+}));
 
 router.post('/logout', (req, res) => {
   res.clearCookie('token', COOKIE_OPTS);
   res.json({ ok: true });
 });
 
-router.get('/me', requireAuth, (req, res) => {
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId);
+router.get('/me', requireAuth, asyncHandler(async (req, res) => {
+  const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId);
   if (!user) return res.status(401).json({ error: 'Não autenticado' });
   res.json({ user: publicUser(user) });
-});
+}));
 
 module.exports = router;

@@ -56,7 +56,7 @@ router.post('/verify-session', async (req, res) => {
       return res.status(403).json({ error: 'Sessão não pertence a este usuário.' });
     }
     if (session.subscription) {
-      syncUserFromSubscription(session.customer, session.subscription);
+      await syncUserFromSubscription(session.customer, session.subscription);
     }
     res.json({ ok: true });
   } catch (err) {
@@ -67,7 +67,7 @@ router.post('/verify-session', async (req, res) => {
 
 router.post('/portal', async (req, res) => {
   if (!ensureStripeConfigured(res)) return;
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId);
+  const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId);
   if (!user?.stripe_customer_id) {
     return res.status(400).json({ error: 'Você ainda não tem uma assinatura para gerenciar.' });
   }

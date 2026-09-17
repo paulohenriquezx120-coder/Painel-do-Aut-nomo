@@ -5,7 +5,7 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 
-require('./db');
+const db = require('./db');
 
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
@@ -15,6 +15,7 @@ const billingRoutes = require('./routes/billing');
 const stripeWebhook = require('./routes/stripeWebhook');
 const { requireAuth } = require('./middleware/auth');
 const { requireActiveAccess } = require('./middleware/subscription');
+const asyncHandler = require('./asyncHandler');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -33,9 +34,9 @@ app.use(cookieParser());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/billing', billingRoutes);
-app.use('/api/products', requireAuth, requireActiveAccess, productRoutes);
-app.use('/api/sales', requireAuth, requireActiveAccess, salesRoutes);
-app.use('/api/quotes', requireAuth, requireActiveAccess, quoteRoutes);
+app.use('/api/products', requireAuth, asyncHandler(requireActiveAccess), productRoutes);
+app.use('/api/sales', requireAuth, asyncHandler(requireActiveAccess), salesRoutes);
+app.use('/api/quotes', requireAuth, asyncHandler(requireActiveAccess), quoteRoutes);
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
@@ -53,6 +54,13 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Erro interno do servidor.' });
 });
 
-app.listen(PORT, () => {
-  console.log(`API rodando em http://localhost:${PORT}`);
-});
+db.migrate()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`API rodando em http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('Falha ao migrar o banco de dados:', err);
+    process.exit(1);
+  });

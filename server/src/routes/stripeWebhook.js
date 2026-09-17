@@ -27,21 +27,21 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
         const session = event.data.object;
         if (session.mode === 'subscription' && session.subscription) {
           const subscription = await stripe.subscriptions.retrieve(session.subscription);
-          syncUserFromSubscription(session.customer, subscription);
+          await syncUserFromSubscription(session.customer, subscription);
         }
         break;
       }
       case 'customer.subscription.updated':
       case 'customer.subscription.created': {
         const subscription = event.data.object;
-        syncUserFromSubscription(subscription.customer, subscription);
+        await syncUserFromSubscription(subscription.customer, subscription);
         break;
       }
       case 'customer.subscription.deleted': {
         const subscription = event.data.object;
-        const user = db.prepare('SELECT id FROM users WHERE stripe_customer_id = ?').get(subscription.customer);
+        const user = await db.prepare('SELECT id FROM users WHERE stripe_customer_id = ?').get(subscription.customer);
         if (user) {
-          db.prepare("UPDATE users SET subscription_status = 'canceled' WHERE id = ?").run(user.id);
+          await db.prepare("UPDATE users SET subscription_status = 'canceled' WHERE id = ?").run(user.id);
         }
         break;
       }

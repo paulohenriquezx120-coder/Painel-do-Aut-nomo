@@ -1,5 +1,6 @@
 const express = require('express');
 const db = require('../db');
+const asyncHandler = require('../asyncHandler');
 
 const router = express.Router();
 
@@ -20,9 +21,9 @@ function serialize(p) {
 }
 
 // Lista + busca, com estoque baixo sempre primeiro
-router.get('/', (req, res) => {
+router.get('/', asyncHandler(async (req, res) => {
   const q = (req.query.q || '').trim().toLowerCase();
-  let rows = db.prepare('SELECT * FROM products WHERE user_id = ?').all(req.userId);
+  let rows = await db.prepare('SELECT * FROM products WHERE user_id = ?').all(req.userId);
   if (q) {
     rows = rows.filter(
       (p) => p.name.toLowerCase().includes(q) || (p.sku || '').toLowerCase().includes(q)
@@ -41,10 +42,10 @@ router.get('/', (req, res) => {
     totalUnits: products.reduce((sum, p) => sum + Number(p.quantity), 0),
   };
   res.json({ products, summary });
-});
+}));
 
-router.get('/export.csv', (req, res) => {
-  const rows = db
+router.get('/export.csv', asyncHandler(async (req, res) => {
+  const rows = await db
     .prepare('SELECT * FROM products WHERE user_id = ? ORDER BY name COLLATE NOCASE')
     .all(req.userId);
   const header = ['Nome', 'SKU', 'Quantidade', 'Estoque mínimo', 'Preço de compra', 'Preço de venda'];
@@ -61,14 +62,14 @@ router.get('/export.csv', (req, res) => {
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', 'attachment; filename="estoque.csv"');
   res.send(csv);
-});
+}));
 
-router.post('/', (req, res) => {
+router.post('/', asyncHandler(async (req, res) => {
   const { name, sku, quantity, minQuantity, purchasePrice, salePrice } = req.body || {};
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'Informe o nome do produto.' });
   }
-  const info = db
+  const info = await db
     .prepare(
       `INSERT INTO products (user_id, name, sku, quantity, min_quantity, purchase_price, sale_price)
        VALUES (?, ?, ?, ?, ?, ?, ?)`
@@ -82,19 +83,19 @@ router.post('/', (req, res) => {
       Number(purchasePrice) || 0,
       Number(salePrice) || 0
     );
-  const product = db.prepare('SELECT * FROM products WHERE id = ?').get(info.lastInsertRowid);
+  const product = await db.prepare('SELECT * FROM products WHERE id = ?').get(info.lastInsertRowid);
   res.status(201).json({ product: serialize(product) });
-});
+}));
 
 function getOwnedProduct(id, userId) {
   return db.prepare('SELECT * FROM products WHERE id = ? AND user_id = ?').get(id, userId);
 }
 
-router.patch('/:id', (req, res) => {
-  const product = getOwnedProduct(req.params.id, req.userId);
+router.patch('/:id', asyncHandler(async (req, res) => {
+  const product = await getOwnedProduct(req.params.id, req.userId);
   if (!product) return res.status(404).json({ error: 'Produto não encontrado.' });
   const { name, sku, minQuantity, purchasePrice, salePrice } = req.body || {};
-  db.prepare(
+  await db.prepare(
     `UPDATE products SET
       name = COALESCE(?, name),
       sku = COALESCE(?, sku),
@@ -111,12 +112,12 @@ router.patch('/:id', (req, res) => {
     salePrice != null ? Number(salePrice) : null,
     product.id
   );
-  const updated = db.prepare('SELECT * FROM products WHERE id = ?').get(product.id);
+  const updated = await db.prepare('SELECT * FROM products WHERE id = ?').get(product.id);
   res.json({ product: serialize(updated) });
-});
+}));
 
-router.patch('/:id/quantity', (req, res) => {
-  const product = getOwnedProduct(req.params.id, req.userId);
+router.patch('/:id/quantity', asyncHandler(async (req, res) => {
+  const product = await getOwnedProduct(req.params.id, req.userId);
   if (!product) return res.status(404).json({ error: 'Produto não encontrado.' });
   const { delta, quantity } = req.body || {};
   let newQty;
@@ -127,19 +128,19 @@ router.patch('/:id/quantity', (req, res) => {
   }
   if (Number.isNaN(newQty)) return res.status(400).json({ error: 'Quantidade inválida.' });
   newQty = Math.max(0, newQty);
-  db.prepare("UPDATE products SET quantity = ?, updated_at = datetime('now') WHERE id = ?").run(
+  await db.prepare("UPDATE products SET quantity = ?, updated_at = datetime('now') WHERE id = ?").run(
     newQty,
     product.id
   );
-  const updated = db.prepare('SELECT * FROM products WHERE id = ?').get(product.id);
+  const updated = await db.prepare('SELECT * FROM products WHERE id = ?').get(product.id);
   res.json({ product: serialize(updated) });
-});
+}));
 
-router.delete('/:id', (req, res) => {
-  const product = getOwnedProduct(req.params.id, req.userId);
+router.delete('/:id', asyncHandler(async (req, res) => {
+  const product = await getOwnedProduct(req.params.id, req.userId);
   if (!product) return res.status(404).json({ error: 'Produto não encontrado.' });
-  db.prepare('DELETE FROM products WHERE id = ?').run(product.id);
+  await db.prepare('DELETE FROM products WHERE id = ?').run(product.id);
   res.json({ ok: true });
-});
+}));
 
 module.exports = router;

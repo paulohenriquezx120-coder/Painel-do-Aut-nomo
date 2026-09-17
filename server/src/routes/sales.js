@@ -1,5 +1,6 @@
 const express = require('express');
 const db = require('../db');
+const asyncHandler = require('../asyncHandler');
 
 const router = express.Router();
 
@@ -33,9 +34,9 @@ function periodStart(period) {
   return null; // 'all'
 }
 
-router.get('/', (req, res) => {
+router.get('/', asyncHandler(async (req, res) => {
   const period = req.query.period || 'all';
-  let rows = db
+  let rows = await db
     .prepare('SELECT * FROM sales WHERE user_id = ? ORDER BY sale_date DESC, id DESC')
     .all(req.userId);
 
@@ -69,9 +70,9 @@ router.get('/', (req, res) => {
     summary: { totalSold, totalProfit, count, avgTicket },
     ranking,
   });
-});
+}));
 
-router.post('/', (req, res) => {
+router.post('/', asyncHandler(async (req, res) => {
   const { productId, productName, quantity, purchasePrice, salePrice, saleDate } = req.body || {};
   const qty = Number(quantity);
   const pPrice = Number(purchasePrice);
@@ -86,13 +87,13 @@ router.post('/', (req, res) => {
 
   let linkedProductId = null;
   if (productId) {
-    const product = db
+    const product = await db
       .prepare('SELECT * FROM products WHERE id = ? AND user_id = ?')
       .get(productId, req.userId);
     if (product) {
       linkedProductId = product.id;
       const newQty = Math.max(0, Number(product.quantity) - qty);
-      db.prepare("UPDATE products SET quantity = ?, updated_at = datetime('now') WHERE id = ?").run(
+      await db.prepare("UPDATE products SET quantity = ?, updated_at = datetime('now') WHERE id = ?").run(
         newQty,
         product.id
       );
@@ -103,22 +104,22 @@ router.post('/', (req, res) => {
   const profit = qty * (sPrice - pPrice);
   const date = saleDate || new Date().toISOString().slice(0, 10);
 
-  const info = db
+  const info = await db
     .prepare(
       `INSERT INTO sales (user_id, product_id, product_name, quantity, purchase_price, sale_price, total, profit, sale_date)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(req.userId, linkedProductId, name, qty, pPrice, sPrice, total, profit, date);
 
-  const sale = db.prepare('SELECT * FROM sales WHERE id = ?').get(info.lastInsertRowid);
+  const sale = await db.prepare('SELECT * FROM sales WHERE id = ?').get(info.lastInsertRowid);
   res.status(201).json({ sale: serialize(sale) });
-});
+}));
 
-router.delete('/:id', (req, res) => {
-  const sale = db.prepare('SELECT * FROM sales WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
+router.delete('/:id', asyncHandler(async (req, res) => {
+  const sale = await db.prepare('SELECT * FROM sales WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!sale) return res.status(404).json({ error: 'Venda não encontrada.' });
-  db.prepare('DELETE FROM sales WHERE id = ?').run(sale.id);
+  await db.prepare('DELETE FROM sales WHERE id = ?').run(sale.id);
   res.json({ ok: true });
-});
+}));
 
 module.exports = router;

@@ -1,6 +1,7 @@
 const express = require('express');
 const PDFDocument = require('pdfkit');
 const db = require('../db');
+const asyncHandler = require('../asyncHandler');
 
 const router = express.Router();
 
@@ -21,14 +22,14 @@ function fmtBRL(n) {
   return Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-router.get('/', (req, res) => {
-  const rows = db
+router.get('/', asyncHandler(async (req, res) => {
+  const rows = await db
     .prepare('SELECT * FROM quotes WHERE user_id = ? ORDER BY created_at DESC, id DESC')
     .all(req.userId);
   res.json({ quotes: rows.map(serialize) });
-});
+}));
 
-router.post('/', (req, res) => {
+router.post('/', asyncHandler(async (req, res) => {
   const { issuerName, clientName, description, validityDays, items } = req.body || {};
   if (!issuerName || !issuerName.trim()) return res.status(400).json({ error: 'Informe o nome do negócio/emissor.' });
   if (!clientName || !clientName.trim()) return res.status(400).json({ error: 'Informe o cliente.' });
@@ -42,7 +43,7 @@ router.post('/', (req, res) => {
   }));
   const total = cleanItems.reduce((sum, it) => sum + it.quantity * it.unitPrice, 0);
 
-  const info = db
+  const info = await db
     .prepare(
       `INSERT INTO quotes (user_id, issuer_name, client_name, description, validity_days, items_json, total)
        VALUES (?, ?, ?, ?, ?, ?, ?)`
@@ -56,19 +57,19 @@ router.post('/', (req, res) => {
       JSON.stringify(cleanItems),
       total
     );
-  const quote = db.prepare('SELECT * FROM quotes WHERE id = ?').get(info.lastInsertRowid);
+  const quote = await db.prepare('SELECT * FROM quotes WHERE id = ?').get(info.lastInsertRowid);
   res.status(201).json({ quote: serialize(quote) });
-});
+}));
 
-router.delete('/:id', (req, res) => {
-  const quote = db.prepare('SELECT * FROM quotes WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
+router.delete('/:id', asyncHandler(async (req, res) => {
+  const quote = await db.prepare('SELECT * FROM quotes WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!quote) return res.status(404).json({ error: 'Orçamento não encontrado.' });
-  db.prepare('DELETE FROM quotes WHERE id = ?').run(quote.id);
+  await db.prepare('DELETE FROM quotes WHERE id = ?').run(quote.id);
   res.json({ ok: true });
-});
+}));
 
-router.get('/:id/pdf', (req, res) => {
-  const quote = db.prepare('SELECT * FROM quotes WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
+router.get('/:id/pdf', asyncHandler(async (req, res) => {
+  const quote = await db.prepare('SELECT * FROM quotes WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!quote) return res.status(404).json({ error: 'Orçamento não encontrado.' });
   const q = serialize(quote);
 
@@ -169,6 +170,6 @@ router.get('/:id/pdf', (req, res) => {
     });
 
   doc.end();
-});
+}));
 
 module.exports = router;

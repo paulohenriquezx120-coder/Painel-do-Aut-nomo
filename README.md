@@ -2,8 +2,10 @@
 
 SaaS de painel para autônomos e pequenos vendedores: controle de estoque, gerador de orçamentos em PDF e painel de vendas com cálculo de lucro.
 
+Site em produção: https://painel-do-autonomo.onrender.com
+
 ## Stack
-- **Backend:** Node.js + Express + SQLite (`node:sqlite`, nativo do Node), autenticação por cookie/JWT, PDF com pdfkit, assinaturas via Stripe.
+- **Backend:** Node.js + Express, banco SQLite hospedado no Turso (`@libsql/client`), autenticação por cookie/JWT, PDF com pdfkit, assinaturas via Stripe.
 - **Frontend:** React + Vite + TypeScript + Tailwind CSS.
 
 ## Como rodar localmente
@@ -24,15 +26,20 @@ npm install
 npm run dev
 ```
 
-Acesse `http://localhost:5173`, crie uma conta e comece a usar. O banco de dados é um arquivo local (`server/data.sqlite`), criado automaticamente na primeira execução.
+Acesse `http://localhost:5173` e crie uma conta.
+
+## Configuração (server/.env)
+
+Copie `server/.env.example` para `server/.env` e preencha:
+
+- `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN`: banco de dados (turso.tech, plano gratuito). Sem isso o servidor não sobe.
+- `ADMIN_EMAILS`: e-mails com acesso liberado sem precisar assinar.
+- `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET`: confirmação automática de pagamento (opcional no começo — o checkout funciona via Payment Link mesmo sem isso).
+- `STRIPE_PLAN_*`: valores e links dos planos exibidos na tela de assinatura.
 
 ## Assinatura (Stripe)
 
-Todo novo cadastro ganha 7 dias de teste grátis sem precisar de cartão. Depois disso, o acesso é bloqueado até assinar.
-
-1. Copie `server/.env.example` para `server/.env`.
-2. Preencha `STRIPE_SECRET_KEY` (Dashboard do Stripe > Developers > API keys) e `STRIPE_PRICE_ID` (produto/preço da assinatura).
-3. Para produção, configure também `STRIPE_WEBHOOK_SECRET` (endpoint de webhook apontando para `/api/billing/webhook`).
+Não há teste grátis (`TRIAL_DAYS=0`) — o acesso é liberado só por assinatura ativa ou por estar em `ADMIN_EMAILS`.
 
 ## Estrutura
 ```
