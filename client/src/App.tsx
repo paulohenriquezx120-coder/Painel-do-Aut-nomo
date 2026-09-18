@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext';
 import Layout from './components/Layout';
+import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import EsqueciSenha from './pages/EsqueciSenha';
@@ -35,7 +36,6 @@ function PrivateArea() {
   return (
     <Layout>
       <Routes>
-        <Route path="/" element={<Navigate to="/vendas" replace />} />
         <Route path="/estoque" element={<Estoque />} />
         <Route path="/orcamentos" element={<Orcamentos />} />
         <Route path="/vendas" element={<Vendas />} />
@@ -57,6 +57,7 @@ export default function App() {
   return (
     <AuthProvider>
       <Routes>
+        <Route path="/" element={<Landing />} />
         <Route
           path="/entrar"
           element={
