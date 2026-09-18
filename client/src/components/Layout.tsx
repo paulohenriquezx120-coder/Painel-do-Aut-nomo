@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { ReactNode } from 'react';
 import { useAuth } from '../AuthContext';
+import FeedbackWidget from './FeedbackWidget';
 
 const navItems = [
   { to: '/vendas', label: 'Vendas' },
@@ -82,6 +83,8 @@ export default function Layout({ children }: { children: ReactNode }) {
       <main className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-6xl px-4 py-5 md:px-6 md:py-8">{children}</div>
       </main>
+
+      <FeedbackWidget />
     </div>
   );
 }

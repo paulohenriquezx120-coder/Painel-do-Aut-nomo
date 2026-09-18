@@ -156,6 +156,9 @@ export const api = {
     request<{ quote: Quote }>('/quotes', { method: 'POST', body: JSON.stringify(payload) }),
   deleteQuote: (id: number) => request<{ ok: true }>(`/quotes/${id}`, { method: 'DELETE' }),
 
+  sendFeedback: (message: string) =>
+    request<{ ok: true }>('/feedback', { method: 'POST', body: JSON.stringify({ message }) }),
+
   getPlans: () => request<{ plans: Plan[] }>('/billing/plans'),
   subscribe: (payload: { planId: string; cpfCnpj: string }) =>
     request<{ invoiceUrl: string }>('/billing/subscribe', { method: 'POST', body: JSON.stringify(payload) }),
