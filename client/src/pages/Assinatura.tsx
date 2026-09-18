@@ -76,7 +76,7 @@ export default function Assinatura() {
 
       {error && <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
-      <div className="rounded-lg border border-brand-100 bg-white p-6">
+      <div className="card p-6">
         {subscription?.status === 'active' && (
           <>
             <div className="mb-1 text-sm font-medium text-brand-700">Assinatura ativa</div>
@@ -150,7 +150,7 @@ export default function Assinatura() {
                   <button
                     onClick={(e) => subscribe(e, p.id)}
                     disabled={loadingPlan !== null}
-                    className="block w-full rounded-md bg-brand-700 px-4 py-2 text-center text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
+                    className="block w-full rounded-md btn-grad px-4 py-2 text-center text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
                   >
                     {loadingPlan === p.id ? 'Gerando...' : 'Assinar'}
                   </button>

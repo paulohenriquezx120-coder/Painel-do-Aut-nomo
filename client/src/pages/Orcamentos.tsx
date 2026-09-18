@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { api, Quote, QuoteItem } from '../api';
+import { EmptyState, IconDoc, PageHeader } from '../components/ui';
 
 function fmtBRL(n: number) {
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -103,13 +104,14 @@ export default function Orcamentos() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold text-ink">Orçamentos</h1>
-        <p className="text-sm text-ink/60">Monte um orçamento e baixe em PDF na hora.</p>
-      </div>
+      <PageHeader
+        title="Orçamentos"
+        subtitle="Monte um orçamento e baixe em PDF na hora."
+        icon={<IconDoc />}
+      />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <form onSubmit={onSubmit} className="rounded-lg border border-brand-100 bg-white p-4">
+        <form onSubmit={onSubmit} className="card p-4">
           {error && <div className="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
           <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -201,7 +203,7 @@ export default function Orcamentos() {
           <button
             type="submit"
             disabled={saving}
-            className="mt-5 w-full rounded-md bg-brand-700 px-3 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
+            className="mt-5 w-full rounded-md btn-grad px-3 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
           >
             {saving ? 'Gerando...' : 'Gerar orçamento em PDF'}
           </button>
@@ -209,7 +211,7 @@ export default function Orcamentos() {
 
         <div>
           <div className="mb-2 text-xs font-medium uppercase text-ink/50">Pré-visualização</div>
-          <div className="rounded-lg border border-brand-100 bg-white p-6 shadow-sm">
+          <div className="card p-6 shadow-sm">
             <div className="mb-4 border-b border-brand-100 pb-3">
               <div className="text-lg font-semibold text-brand-800">{issuerName || 'Seu negócio'}</div>
               <div className="text-xs text-ink/50">Orçamento</div>
@@ -270,7 +272,7 @@ export default function Orcamentos() {
 
       <div className="mt-8">
         <h2 className="mb-3 text-sm font-semibold text-ink">Histórico de orçamentos</h2>
-        <div className="overflow-x-auto rounded-lg border border-brand-100 bg-white">
+        <div className="overflow-x-auto card">
           <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b border-brand-100 bg-brand-50/60 text-left text-xs font-semibold uppercase text-ink/60">
@@ -282,7 +284,7 @@ export default function Orcamentos() {
             </thead>
             <tbody>
               {quotes.map((q) => (
-                <tr key={q.id} className="border-b border-brand-50 last:border-0">
+                <tr key={q.id} className="border-b border-brand-50 last:border-0 hover:bg-brand-50/40">
                   <td className="px-4 py-3 font-medium text-ink">
                     {q.clientName}
                     {q.convertedAt && (
@@ -317,8 +319,12 @@ export default function Orcamentos() {
               ))}
               {quotes.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-10 text-center text-sm text-ink/50">
-                    Nenhum orçamento gerado ainda.
+                  <td colSpan={4}>
+                    <EmptyState
+                      icon={<IconDoc />}
+                      title="Nenhum orçamento gerado ainda"
+                      text="Preencha o formulário acima e gere seu primeiro PDF."
+                    />
                   </td>
                 </tr>
               )}

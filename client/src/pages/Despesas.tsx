@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { api, ApiError, Expense } from '../api';
+import { EmptyState, IconWallet, PageHeader, StatCard } from '../components/ui';
 
 function fmtBRL(n: number) {
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -59,15 +60,14 @@ export default function Despesas() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold text-ink">Despesas</h1>
-        <p className="text-sm text-ink/60">
-          Registre aluguel, frete, taxas e outros custos pra ver o lucro real na tela de Vendas.
-        </p>
-      </div>
+      <PageHeader
+        title="Despesas"
+        subtitle="Registre aluguel, frete, taxas e outros custos pra ver o lucro real na tela de Vendas."
+        icon={<IconWallet />}
+      />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <form onSubmit={onSubmit} className="h-fit rounded-lg border border-brand-100 bg-white p-4">
+        <form onSubmit={onSubmit} className="h-fit card p-4">
           <h2 className="mb-3 text-sm font-semibold text-ink">Nova despesa</h2>
           {error && <div className="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
           <label className="mb-3 block text-sm">
@@ -103,7 +103,7 @@ export default function Despesas() {
           </div>
           <button
             type="submit"
-            className="w-full rounded-md bg-brand-700 px-3 py-2 text-sm font-medium text-white hover:bg-brand-800"
+            className="w-full rounded-md btn-grad px-3 py-2 text-sm font-medium text-white hover:bg-brand-800"
           >
             Salvar despesa
           </button>
@@ -117,7 +117,7 @@ export default function Despesas() {
                 onClick={() => setPeriod(p.value)}
                 className={`rounded-md px-3 py-1.5 text-sm font-medium ${
                   period === p.value
-                    ? 'bg-brand-700 text-white'
+                    ? 'btn-grad text-white'
                     : 'border border-brand-200 bg-white text-ink/70 hover:bg-brand-50'
                 }`}
               >
@@ -126,12 +126,14 @@ export default function Despesas() {
             ))}
           </div>
 
-          <div className="rounded-lg border border-brand-100 bg-white p-4">
-            <div className="text-xs font-medium uppercase text-ink/50">Total de despesas no período</div>
-            <div className="mt-1 text-2xl font-semibold text-ink">{fmtBRL(total)}</div>
-          </div>
+          <StatCard
+            label="Total de despesas no período"
+            value={fmtBRL(total)}
+            icon={<IconWallet />}
+            tone="warn"
+          />
 
-          <div className="overflow-x-auto rounded-lg border border-brand-100 bg-white">
+          <div className="overflow-x-auto card">
             <table className="w-full min-w-[420px] text-sm">
               <thead>
                 <tr className="border-b border-brand-100 bg-brand-50/60 text-left text-xs font-semibold uppercase text-ink/60">
@@ -143,7 +145,7 @@ export default function Despesas() {
               </thead>
               <tbody>
                 {expenses.map((e) => (
-                  <tr key={e.id} className="border-b border-brand-50 last:border-0">
+                  <tr key={e.id} className="border-b border-brand-50 last:border-0 hover:bg-brand-50/40">
                     <td className="px-4 py-3 font-medium text-ink">{e.description}</td>
                     <td className="px-4 py-3 text-ink/70">{fmtDate(e.expenseDate)}</td>
                     <td className="px-4 py-3">{fmtBRL(e.amount)}</td>
@@ -156,8 +158,12 @@ export default function Despesas() {
                 ))}
                 {expenses.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-4 py-10 text-center text-sm text-ink/50">
-                      Nenhuma despesa registrada neste período.
+                    <td colSpan={4}>
+                      <EmptyState
+                        icon={<IconWallet />}
+                        title="Nenhuma despesa neste período"
+                        text="Registre frete, aluguel, embalagens e outros custos."
+                      />
                     </td>
                   </tr>
                 )}

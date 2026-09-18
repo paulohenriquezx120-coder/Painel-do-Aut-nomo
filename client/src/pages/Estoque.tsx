@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { api, ApiError, ImportResult, Product, ProductSummary } from '../api';
+import { EmptyState, IconAlert, IconBox, IconCart, PageHeader, StatCard } from '../components/ui';
 
 function fmtBRL(n: number) {
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -117,34 +118,35 @@ export default function Estoque() {
 
   return (
     <div>
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-ink">Estoque</h1>
-          <p className="text-sm text-ink/60">Controle seus produtos e quantidades.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <a
-            href="/api/products/export.csv"
-            className="rounded-md border border-brand-200 bg-white px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50"
-          >
-            Exportar CSV
-          </a>
-          <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={onImportFile} />
-          <button
-            onClick={onPickImportFile}
-            disabled={importing}
-            className="rounded-md border border-brand-200 bg-white px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50 disabled:opacity-60"
-          >
-            {importing ? 'Importando...' : 'Importar CSV'}
-          </button>
-          <button
-            onClick={() => setShowForm((v) => !v)}
-            className="rounded-md bg-brand-700 px-3 py-2 text-sm font-medium text-white hover:bg-brand-800"
-          >
-            {showForm ? 'Cancelar' : '+ Novo produto'}
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Estoque"
+        subtitle="Controle seus produtos e quantidades."
+        icon={<IconBox />}
+        actions={
+          <>
+            <a
+              href="/api/products/export.csv"
+              className="rounded-lg border border-brand-200 bg-white px-3 py-2 text-sm font-medium text-brand-700 shadow-sm hover:bg-brand-50"
+            >
+              Exportar CSV
+            </a>
+            <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={onImportFile} />
+            <button
+              onClick={onPickImportFile}
+              disabled={importing}
+              className="rounded-lg border border-brand-200 bg-white px-3 py-2 text-sm font-medium text-brand-700 shadow-sm hover:bg-brand-50 disabled:opacity-60"
+            >
+              {importing ? 'Importando...' : 'Importar CSV'}
+            </button>
+            <button
+              onClick={() => setShowForm((v) => !v)}
+              className="rounded-lg btn-grad px-3 py-2 text-sm font-medium text-white"
+            >
+              {showForm ? 'Cancelar' : '+ Novo produto'}
+            </button>
+          </>
+        }
+      />
 
       {importResult && (
         <div className="mb-4 rounded-md bg-brand-50 px-3 py-2 text-sm text-ink">
@@ -169,24 +171,19 @@ export default function Estoque() {
       </p>
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-lg border border-brand-100 bg-white p-4">
-          <div className="text-xs font-medium uppercase text-ink/50">Produtos cadastrados</div>
-          <div className="mt-1 text-2xl font-semibold text-ink">{summary.total}</div>
-        </div>
-        <div className="rounded-lg border border-brand-100 bg-white p-4">
-          <div className="text-xs font-medium uppercase text-ink/50">Estoque baixo</div>
-          <div className={`mt-1 text-2xl font-semibold ${summary.lowStock > 0 ? 'text-amber-600' : 'text-ink'}`}>
-            {summary.lowStock}
-          </div>
-        </div>
-        <div className="rounded-lg border border-brand-100 bg-white p-4">
-          <div className="text-xs font-medium uppercase text-ink/50">Total de unidades</div>
-          <div className="mt-1 text-2xl font-semibold text-ink">{summary.totalUnits}</div>
-        </div>
+        <StatCard label="Produtos cadastrados" value={summary.total} icon={<IconBox />} tone="brand" />
+        <StatCard
+          label="Estoque baixo"
+          value={summary.lowStock}
+          icon={<IconAlert />}
+          tone={summary.lowStock > 0 ? 'warn' : 'default'}
+          hint={summary.lowStock > 0 ? 'Produtos abaixo do mínimo' : 'Tudo em dia'}
+        />
+        <StatCard label="Total de unidades" value={summary.totalUnits} icon={<IconCart />} />
       </div>
 
       {showForm && (
-        <form onSubmit={onCreate} className="mb-6 rounded-lg border border-brand-100 bg-white p-4">
+        <form onSubmit={onCreate} className="mb-6 card p-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <label className="text-sm">
               <span className="mb-1 block font-medium text-ink/80">Nome*</span>
@@ -245,7 +242,7 @@ export default function Estoque() {
           </div>
           <button
             type="submit"
-            className="mt-4 rounded-md bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800"
+            className="mt-4 rounded-md btn-grad px-4 py-2 text-sm font-medium text-white hover:bg-brand-800"
           >
             Salvar produto
           </button>
@@ -259,7 +256,7 @@ export default function Estoque() {
         className="mb-4 w-full max-w-sm rounded-md border border-brand-200 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
       />
 
-      <div className="overflow-x-auto rounded-lg border border-brand-100 bg-white">
+      <div className="overflow-x-auto card">
         <table className="w-full min-w-[720px] text-sm">
           <thead>
             <tr className="border-b border-brand-100 bg-brand-50/60 text-left text-xs font-semibold uppercase text-ink/60">
@@ -276,7 +273,7 @@ export default function Estoque() {
             {products.map((p) => {
               const isEditing = editingId === p.id;
               return (
-                <tr key={p.id} className="border-b border-brand-50 last:border-0">
+                <tr key={p.id} className="border-b border-brand-50 last:border-0 hover:bg-brand-50/40">
                   <td className="px-4 py-3">
                     {isEditing ? (
                       <input
@@ -370,7 +367,7 @@ export default function Estoque() {
                       <div className="flex justify-end gap-2">
                         <button
                           onClick={() => saveEdit(p.id)}
-                          className="rounded-md bg-brand-700 px-2 py-1 text-xs font-medium text-white hover:bg-brand-800"
+                          className="rounded-md btn-grad px-2 py-1 text-xs font-medium text-white hover:bg-brand-800"
                         >
                           Salvar
                         </button>
@@ -397,8 +394,12 @@ export default function Estoque() {
             })}
             {products.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-sm text-ink/50">
-                  Nenhum produto cadastrado ainda.
+                <td colSpan={7}>
+                  <EmptyState
+                    icon={<IconBox />}
+                    title="Nenhum produto cadastrado ainda"
+                    text='Use "+ Novo produto" ou importe uma planilha em CSV.'
+                  />
                 </td>
               </tr>
             )}

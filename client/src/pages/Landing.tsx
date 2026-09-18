@@ -42,7 +42,7 @@ export default function Landing() {
           </Link>
           <Link
             to="/cadastro"
-            className="rounded-md bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800"
+            className="rounded-md btn-grad px-4 py-2 text-sm font-medium text-white hover:bg-brand-800"
           >
             Criar conta grátis
           </Link>
@@ -62,7 +62,7 @@ export default function Landing() {
             <div className="flex flex-wrap items-center gap-3">
               <Link
                 to="/cadastro"
-                className="rounded-md bg-brand-700 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-800"
+                className="rounded-md btn-grad px-6 py-3 text-sm font-semibold text-white hover:bg-brand-800"
               >
                 Criar conta grátis
               </Link>
@@ -181,7 +181,7 @@ export default function Landing() {
         <p className="mb-7 text-sm text-ink/60">R$ 39,90/mês ou R$ 89,90/trimestre. Cancele quando quiser.</p>
         <Link
           to="/cadastro"
-          className="inline-block rounded-md bg-brand-700 px-8 py-3 text-sm font-semibold text-white hover:bg-brand-800"
+          className="inline-block rounded-md btn-grad px-8 py-3 text-sm font-semibold text-white hover:bg-brand-800"
         >
           Criar conta grátis
         </Link>

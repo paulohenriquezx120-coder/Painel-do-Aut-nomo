@@ -38,7 +38,7 @@ export default function FeedbackWidget() {
   return (
     <div className="fixed bottom-5 right-5 z-40">
       {open && (
-        <div className="mb-3 w-72 rounded-lg border border-brand-100 bg-white p-4 shadow-lg sm:w-80">
+        <div className="mb-3 w-72 card p-4 shadow-lg sm:w-80">
           {sent ? (
             <>
               <p className="mb-3 text-sm text-ink">
@@ -79,7 +79,7 @@ export default function FeedbackWidget() {
               <button
                 type="submit"
                 disabled={sending}
-                className="w-full rounded-md bg-brand-700 px-3 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
+                className="w-full rounded-md btn-grad px-3 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
               >
                 {sending ? 'Enviando...' : 'Enviar sugestão'}
               </button>
@@ -91,7 +91,7 @@ export default function FeedbackWidget() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="flex items-center gap-2 rounded-full bg-brand-700 px-4 py-3 text-sm font-medium text-white shadow-lg hover:bg-brand-800"
+          className="flex items-center gap-2 rounded-full btn-grad px-4 py-3 text-sm font-medium text-white shadow-lg hover:bg-brand-800"
         >
           💡 Sugestões
         </button>

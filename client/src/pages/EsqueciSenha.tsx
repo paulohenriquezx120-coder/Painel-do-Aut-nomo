@@ -23,14 +23,14 @@ export default function EsqueciSenha() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#f5f7f6] px-4">
+    <div className="flex min-h-screen items-center justify-center page-bg bg-[#f5f7f6] px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-2">
-          <img src="/icon.svg" alt="" className="h-10 w-10 rounded-md" />
+          <img src="/icon.svg" alt="" className="h-12 w-12 rounded-xl shadow-md shadow-brand-900/20" />
           <h1 className="text-lg font-semibold text-brand-800">Painel do Autônomo</h1>
         </div>
 
-        <div className="rounded-lg border border-brand-100 bg-white p-6 shadow-sm">
+        <div className="card p-6 shadow-lg shadow-brand-900/10">
           <h2 className="mb-4 text-base font-semibold text-ink">Esqueci minha senha</h2>
 
           {sent ? (
@@ -56,7 +56,7 @@ export default function EsqueciSenha() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-md bg-brand-700 px-3 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
+                className="w-full rounded-md btn-grad px-3 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
               >
                 {loading ? 'Enviando...' : 'Enviar link de redefinição'}
               </button>

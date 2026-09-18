@@ -10,6 +10,7 @@ import RedefinirSenha from './pages/RedefinirSenha';
 import Estoque from './pages/Estoque';
 import Orcamentos from './pages/Orcamentos';
 import Vendas from './pages/Vendas';
+import Dashboard from './pages/Dashboard';
 import Despesas from './pages/Despesas';
 import Assinatura from './pages/Assinatura';
 
@@ -28,7 +29,7 @@ function PrivateArea() {
 
   if (!user.subscription.hasAccess) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f5f7f6] px-4">
+      <div className="flex min-h-screen items-center justify-center page-bg bg-[#f5f7f6] px-4">
         <Assinatura />
       </div>
     );
@@ -37,12 +38,13 @@ function PrivateArea() {
   return (
     <Layout>
       <Routes>
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/estoque" element={<Estoque />} />
         <Route path="/orcamentos" element={<Orcamentos />} />
         <Route path="/vendas" element={<Vendas />} />
         <Route path="/despesas" element={<Despesas />} />
         <Route path="/assinatura" element={<Assinatura />} />
-        <Route path="*" element={<Navigate to="/vendas" replace />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Layout>
   );
@@ -51,7 +53,7 @@ function PrivateArea() {
 function PublicOnly({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return null;
-  if (user) return <Navigate to="/vendas" replace />;
+  if (user) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }
 
