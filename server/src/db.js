@@ -86,6 +86,16 @@ async function migrate() {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS expenses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      description TEXT NOT NULL,
+      amount REAL NOT NULL,
+      expense_date TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_expenses_user ON expenses(user_id);
     CREATE INDEX IF NOT EXISTS idx_products_user ON products(user_id);
     CREATE INDEX IF NOT EXISTS idx_sales_user ON sales(user_id);
     CREATE INDEX IF NOT EXISTS idx_quotes_user ON quotes(user_id);
@@ -106,6 +116,11 @@ async function migrate() {
   await addColumn('current_period_end', 'TEXT');
   await addColumn('asaas_customer_id', 'TEXT');
   await addColumn('asaas_subscription_id', 'TEXT');
+
+  const quoteColumns = (await client.execute('PRAGMA table_info(quotes)')).rows.map((c) => c.name);
+  if (!quoteColumns.includes('converted_at')) {
+    await client.execute('ALTER TABLE quotes ADD COLUMN converted_at TEXT');
+  }
 
   const envTrialDays = Number(process.env.TRIAL_DAYS);
   const trialDays = Number.isFinite(envTrialDays) ? envTrialDays : 7;

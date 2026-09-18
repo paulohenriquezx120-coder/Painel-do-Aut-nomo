@@ -83,6 +83,21 @@ export default function Orcamentos() {
     load();
   };
 
+  const convertQuote = async (q: Quote) => {
+    if (!confirm(`Converter o orçamento de ${q.clientName} em venda? Isso registra as vendas e baixa o estoque.`)) return;
+    try {
+      const res = await api.convertQuote(q.id);
+      let msg = `${res.sales} venda(s) registrada(s).`;
+      if (res.unmatched.length > 0) {
+        msg += `\n\nNão achei no estoque: ${res.unmatched.join(', ')}. Esses itens entraram com custo zero (o lucro deles aparece cheio). Cadastre o produto no Estoque pra o lucro ficar correto nas próximas.`;
+      }
+      alert(msg);
+      load();
+    } catch (err: any) {
+      alert(err.message || 'Não foi possível converter o orçamento.');
+    }
+  };
+
   const today = new Date();
   const validUntil = new Date(today.getTime() + validityDays * 24 * 60 * 60 * 1000);
 
@@ -256,7 +271,7 @@ export default function Orcamentos() {
       <div className="mt-8">
         <h2 className="mb-3 text-sm font-semibold text-ink">Histórico de orçamentos</h2>
         <div className="overflow-x-auto rounded-lg border border-brand-100 bg-white">
-          <table className="w-full min-w-[480px] text-sm">
+          <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b border-brand-100 bg-brand-50/60 text-left text-xs font-semibold uppercase text-ink/60">
                 <th className="px-4 py-3">Cliente</th>
@@ -268,11 +283,23 @@ export default function Orcamentos() {
             <tbody>
               {quotes.map((q) => (
                 <tr key={q.id} className="border-b border-brand-50 last:border-0">
-                  <td className="px-4 py-3 font-medium text-ink">{q.clientName}</td>
+                  <td className="px-4 py-3 font-medium text-ink">
+                    {q.clientName}
+                    {q.convertedAt && (
+                      <span className="ml-2 rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">
+                        virou venda
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-ink/70">{fmtDate(q.createdAt)}</td>
                   <td className="px-4 py-3">{fmtBRL(q.total)}</td>
                   <td className="px-4 py-3 text-right">
-                    <div className="flex justify-end gap-3 text-xs">
+                    <div className="flex flex-wrap justify-end gap-x-3 gap-y-1 text-xs">
+                      {!q.convertedAt && (
+                        <button onClick={() => convertQuote(q)} className="font-medium text-brand-700 hover:underline">
+                          Converter em venda
+                        </button>
+                      )}
                       <a
                         href={`/api/quotes/${q.id}/pdf`}
                         target="_blank"

@@ -28,7 +28,22 @@ export type Sale = {
   createdAt: string;
 };
 
-export type SalesSummary = { totalSold: number; totalProfit: number; count: number; avgTicket: number };
+export type SalesSummary = {
+  totalSold: number;
+  totalProfit: number;
+  count: number;
+  avgTicket: number;
+  totalExpenses: number;
+  netProfit: number;
+};
+
+export type Expense = {
+  id: number;
+  description: string;
+  amount: number;
+  expenseDate: string;
+  createdAt: string;
+};
 export type RankingItem = { productName: string; quantity: number; revenue: number; profit: number };
 
 export type QuoteItem = { name: string; quantity: number; unitPrice: number };
@@ -42,6 +57,7 @@ export type Quote = {
   items: QuoteItem[];
   total: number;
   createdAt: string;
+  convertedAt: string | null;
 };
 
 export type Subscription = {
@@ -152,9 +168,17 @@ export const api = {
   deleteSale: (id: number) => request<{ ok: true }>(`/sales/${id}`, { method: 'DELETE' }),
 
   listQuotes: () => request<{ quotes: Quote[] }>('/quotes'),
-  createQuote: (payload: Omit<Quote, 'id' | 'total' | 'createdAt'>) =>
+  convertQuote: (id: number) =>
+    request<{ ok: true; sales: number; unmatched: string[] }>(`/quotes/${id}/convert`, { method: 'POST' }),
+  createQuote: (payload: Omit<Quote, 'id' | 'total' | 'createdAt' | 'convertedAt'>) =>
     request<{ quote: Quote }>('/quotes', { method: 'POST', body: JSON.stringify(payload) }),
   deleteQuote: (id: number) => request<{ ok: true }>(`/quotes/${id}`, { method: 'DELETE' }),
+
+  listExpenses: (period: string) =>
+    request<{ expenses: Expense[]; total: number }>(`/expenses?period=${period}`),
+  createExpense: (payload: { description: string; amount: number; expenseDate: string }) =>
+    request<{ expense: Expense }>('/expenses', { method: 'POST', body: JSON.stringify(payload) }),
+  deleteExpense: (id: number) => request<{ ok: true }>(`/expenses/${id}`, { method: 'DELETE' }),
 
   sendFeedback: (message: string) =>
     request<{ ok: true }>('/feedback', { method: 'POST', body: JSON.stringify({ message }) }),

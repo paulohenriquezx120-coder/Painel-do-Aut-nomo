@@ -7,6 +7,7 @@ const navItems = [
   { to: '/vendas', label: 'Vendas' },
   { to: '/estoque', label: 'Estoque' },
   { to: '/orcamentos', label: 'Orçamentos' },
+  { to: '/despesas', label: 'Despesas' },
 ];
 
 function trialLabel(trialEndsAt?: string | null) {

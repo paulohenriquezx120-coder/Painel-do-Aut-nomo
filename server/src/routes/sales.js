@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const asyncHandler = require('../asyncHandler');
+const { periodStart } = require('../period');
 
 const router = express.Router();
 
@@ -17,21 +18,6 @@ function serialize(s) {
     saleDate: s.sale_date,
     createdAt: s.created_at,
   };
-}
-
-function periodStart(period) {
-  const now = new Date();
-  if (period === 'today') {
-    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    return d;
-  }
-  if (period === '7d') {
-    return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  }
-  if (period === '30d') {
-    return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-  }
-  return null; // 'all'
 }
 
 router.get('/', asyncHandler(async (req, res) => {
@@ -52,6 +38,13 @@ router.get('/', asyncHandler(async (req, res) => {
   const count = sales.length;
   const avgTicket = count > 0 ? totalSold / count : 0;
 
+  let expenseRows = await db.prepare('SELECT * FROM expenses WHERE user_id = ?').all(req.userId);
+  if (start) {
+    expenseRows = expenseRows.filter((e) => new Date(e.expense_date) >= start);
+  }
+  const totalExpenses = expenseRows.reduce((sum, e) => sum + e.amount, 0);
+  const netProfit = totalProfit - totalExpenses;
+
   const byProduct = new Map();
   for (const s of sales) {
     const key = s.productName;
@@ -67,7 +60,7 @@ router.get('/', asyncHandler(async (req, res) => {
 
   res.json({
     sales,
-    summary: { totalSold, totalProfit, count, avgTicket },
+    summary: { totalSold, totalProfit, count, avgTicket, totalExpenses, netProfit },
     ranking,
   });
 }));

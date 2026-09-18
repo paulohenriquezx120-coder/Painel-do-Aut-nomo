@@ -15,6 +15,7 @@ function serialize(q) {
     items: JSON.parse(q.items_json),
     total: q.total,
     createdAt: q.created_at,
+    convertedAt: q.converted_at || null,
   };
 }
 
@@ -59,6 +60,54 @@ router.post('/', asyncHandler(async (req, res) => {
     );
   const quote = await db.prepare('SELECT * FROM quotes WHERE id = ?').get(info.lastInsertRowid);
   res.status(201).json({ quote: serialize(quote) });
+}));
+
+// Transforma cada item do orçamento em uma venda. Itens que batem com o nome de um
+// produto do estoque usam o custo dele e baixam a quantidade; os demais entram com
+// custo zero e são devolvidos em "unmatched" pra o usuário saber que o lucro deles é aproximado.
+router.post('/:id/convert', asyncHandler(async (req, res) => {
+  const quote = await db.prepare('SELECT * FROM quotes WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
+  if (!quote) return res.status(404).json({ error: 'Orçamento não encontrado.' });
+  if (quote.converted_at) return res.status(400).json({ error: 'Este orçamento já foi convertido em venda.' });
+
+  const items = serialize(quote).items.filter((it) => it.quantity > 0);
+  if (items.length === 0) return res.status(400).json({ error: 'Orçamento sem itens para converter.' });
+
+  const products = await db.prepare('SELECT * FROM products WHERE user_id = ?').all(req.userId);
+  const byName = new Map(products.map((p) => [p.name.trim().toLowerCase(), p]));
+  const today = new Date().toISOString().slice(0, 10);
+  const unmatched = [];
+
+  for (const item of items) {
+    const product = byName.get(item.name.trim().toLowerCase());
+    const cost = product ? Number(product.purchase_price) : 0;
+    if (product) {
+      const newQty = Math.max(0, Number(product.quantity) - item.quantity);
+      product.quantity = newQty;
+      await db.prepare("UPDATE products SET quantity = ?, updated_at = datetime('now') WHERE id = ?").run(newQty, product.id);
+    } else {
+      unmatched.push(item.name);
+    }
+    await db
+      .prepare(
+        `INSERT INTO sales (user_id, product_id, product_name, quantity, purchase_price, sale_price, total, profit, sale_date)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        req.userId,
+        product ? product.id : null,
+        item.name,
+        item.quantity,
+        cost,
+        item.unitPrice,
+        item.quantity * item.unitPrice,
+        item.quantity * (item.unitPrice - cost),
+        today
+      );
+  }
+
+  await db.prepare("UPDATE quotes SET converted_at = datetime('now') WHERE id = ?").run(quote.id);
+  res.json({ ok: true, sales: items.length, unmatched });
 }));
 
 router.delete('/:id', asyncHandler(async (req, res) => {

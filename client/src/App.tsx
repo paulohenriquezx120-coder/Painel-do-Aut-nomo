@@ -10,6 +10,7 @@ import RedefinirSenha from './pages/RedefinirSenha';
 import Estoque from './pages/Estoque';
 import Orcamentos from './pages/Orcamentos';
 import Vendas from './pages/Vendas';
+import Despesas from './pages/Despesas';
 import Assinatura from './pages/Assinatura';
 
 function PrivateArea() {
@@ -39,6 +40,7 @@ function PrivateArea() {
         <Route path="/estoque" element={<Estoque />} />
         <Route path="/orcamentos" element={<Orcamentos />} />
         <Route path="/vendas" element={<Vendas />} />
+        <Route path="/despesas" element={<Despesas />} />
         <Route path="/assinatura" element={<Assinatura />} />
         <Route path="*" element={<Navigate to="/vendas" replace />} />
       </Routes>

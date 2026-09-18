@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api, Product, RankingItem, Sale, SalesSummary } from '../api';
 
 function fmtBRL(n: number) {
@@ -29,7 +30,14 @@ const emptyForm = {
 export default function Vendas() {
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
-  const [summary, setSummary] = useState<SalesSummary>({ totalSold: 0, totalProfit: 0, count: 0, avgTicket: 0 });
+  const [summary, setSummary] = useState<SalesSummary>({
+    totalSold: 0,
+    totalProfit: 0,
+    count: 0,
+    avgTicket: 0,
+    totalExpenses: 0,
+    netProfit: 0,
+  });
   const [ranking, setRanking] = useState<RankingItem[]>([]);
   const [period, setPeriod] = useState('30d');
   const [form, setForm] = useState(emptyForm);
@@ -265,6 +273,19 @@ export default function Vendas() {
               <div className="rounded-lg border border-brand-100 bg-white p-3">
                 <div className="text-xs font-medium uppercase text-ink/50">Ticket médio</div>
                 <div className="mt-1 text-lg font-semibold text-ink">{fmtBRL(summary.avgTicket)}</div>
+              </div>
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <Link to="/despesas" className="rounded-lg border border-brand-100 bg-white p-3 hover:bg-brand-50/50">
+                <div className="text-xs font-medium uppercase text-ink/50">Despesas</div>
+                <div className="mt-1 text-lg font-semibold text-ink">{fmtBRL(summary.totalExpenses)}</div>
+              </Link>
+              <div className="rounded-lg border border-brand-200 bg-brand-50/60 p-3">
+                <div className="text-xs font-medium uppercase text-ink/50">Lucro real (após despesas)</div>
+                <div className={`mt-1 text-lg font-semibold ${summary.netProfit < 0 ? 'text-red-600' : 'text-brand-700'}`}>
+                  {fmtBRL(summary.netProfit)}
+                </div>
               </div>
             </div>
           </div>

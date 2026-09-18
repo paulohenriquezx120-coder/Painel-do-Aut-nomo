@@ -15,6 +15,7 @@ const billingRoutes = require('./routes/billing');
 const stripeWebhook = require('./routes/stripeWebhook');
 const asaasWebhook = require('./routes/asaasWebhook');
 const feedbackRoutes = require('./routes/feedback');
+const expenseRoutes = require('./routes/expenses');
 const { requireAuth } = require('./middleware/auth');
 const { requireActiveAccess } = require('./middleware/subscription');
 const asyncHandler = require('./asyncHandler');
@@ -41,6 +42,7 @@ app.use('/api/feedback', requireAuth, feedbackRoutes);
 app.use('/api/products', requireAuth, asyncHandler(requireActiveAccess), productRoutes);
 app.use('/api/sales', requireAuth, asyncHandler(requireActiveAccess), salesRoutes);
 app.use('/api/quotes', requireAuth, asyncHandler(requireActiveAccess), quoteRoutes);
+app.use('/api/expenses', requireAuth, asyncHandler(requireActiveAccess), expenseRoutes);
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
