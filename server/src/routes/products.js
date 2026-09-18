@@ -1,8 +1,49 @@
 const express = require('express');
+const multer = require('multer');
 const db = require('../db');
 const asyncHandler = require('../asyncHandler');
+const { parseCsv } = require('../csv');
 
 const router = express.Router();
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+
+function uploadSingle(req, res, next) {
+  upload.single('file')(req, res, (err) => {
+    if (err) return res.status(400).json({ error: err.message || 'Falha ao enviar o arquivo.' });
+    next();
+  });
+}
+
+function normalizeHeader(h) {
+  return String(h || '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .trim()
+    .toLowerCase();
+}
+
+const FIELD_ALIASES = {
+  name: ['nome', 'produto', 'name', 'descricao'],
+  sku: ['sku', 'codigo', 'cod'],
+  quantity: ['quantidade', 'qtd', 'quantity', 'estoque'],
+  minQuantity: ['estoque minimo', 'minimo', 'quantidade minima', 'min quantity', 'estoque min'],
+  purchasePrice: ['preco de compra', 'custo', 'purchase price', 'preco compra'],
+  salePrice: ['preco de venda', 'venda', 'sale price', 'preco venda'],
+};
+
+function toNumber(raw) {
+  let v = String(raw ?? '').trim();
+  if (!v) return 0;
+  v = v.replace(/[^\d,.-]/g, '');
+  if (v.includes(',') && v.includes('.')) {
+    v = v.replace(/\./g, '').replace(',', '.');
+  } else if (v.includes(',')) {
+    v = v.replace(',', '.');
+  }
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
 
 function serialize(p) {
   return {
@@ -63,6 +104,68 @@ router.get('/export.csv', asyncHandler(async (req, res) => {
   res.setHeader('Content-Disposition', 'attachment; filename="estoque.csv"');
   res.send(csv);
 }));
+
+router.post(
+  '/import',
+  uploadSingle,
+  asyncHandler(async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'Envie um arquivo .csv.' });
+
+    const ext = (req.file.originalname.split('.').pop() || '').toLowerCase();
+    if (ext !== 'csv') {
+      return res.status(400).json({
+        error: 'Envie um arquivo .csv. No Excel: Arquivo > Salvar como > CSV (separado por vírgulas).',
+      });
+    }
+
+    const { headers, rows } = parseCsv(req.file.buffer.toString('utf8'));
+    if (rows.length === 0) {
+      return res.status(400).json({ error: 'A planilha está vazia.' });
+    }
+    if (rows.length > 2000) {
+      return res.status(400).json({ error: 'Máximo de 2000 linhas por importação.' });
+    }
+
+    const headerMap = {};
+    for (const [field, aliases] of Object.entries(FIELD_ALIASES)) {
+      const found = headers.find((h) => aliases.includes(normalizeHeader(h)));
+      if (found) headerMap[field] = found;
+    }
+    if (!headerMap.name) {
+      return res.status(400).json({
+        error: 'Não encontrei uma coluna de nome do produto. Use uma coluna chamada "Nome".',
+      });
+    }
+
+    let imported = 0;
+    const errors = [];
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const name = String(row[headerMap.name] || '').trim();
+      if (!name) {
+        errors.push(`Linha ${i + 2}: sem nome, ignorada.`);
+        continue;
+      }
+      await db
+        .prepare(
+          `INSERT INTO products (user_id, name, sku, quantity, min_quantity, purchase_price, sale_price)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`
+        )
+        .run(
+          req.userId,
+          name,
+          headerMap.sku ? String(row[headerMap.sku] || '').trim() : '',
+          headerMap.quantity ? toNumber(row[headerMap.quantity]) : 0,
+          headerMap.minQuantity ? toNumber(row[headerMap.minQuantity]) : 0,
+          headerMap.purchasePrice ? toNumber(row[headerMap.purchasePrice]) : 0,
+          headerMap.salePrice ? toNumber(row[headerMap.salePrice]) : 0
+        );
+      imported++;
+    }
+
+    res.json({ imported, skipped: errors.length, errors: errors.slice(0, 20) });
+  })
+);
 
 router.post('/', asyncHandler(async (req, res) => {
   const { name, sku, quantity, minQuantity, purchasePrice, salePrice } = req.body || {};

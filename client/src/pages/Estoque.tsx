@@ -1,5 +1,5 @@
-import { FormEvent, useEffect, useState } from 'react';
-import { api, Product, ProductSummary } from '../api';
+import { FormEvent, useEffect, useRef, useState } from 'react';
+import { api, ApiError, ImportResult, Product, ProductSummary } from '../api';
 
 function fmtBRL(n: number) {
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -16,6 +16,9 @@ export default function Estoque() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editDraft, setEditDraft] = useState<Partial<Record<keyof Product, string>>>({});
   const [error, setError] = useState('');
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const load = async (q = query) => {
     const res = await api.listProducts(q);
@@ -92,6 +95,26 @@ export default function Estoque() {
     load();
   };
 
+  const onPickImportFile = () => fileInputRef.current?.click();
+
+  const onImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setError('');
+    setImportResult(null);
+    setImporting(true);
+    try {
+      const result = await api.importProducts(file);
+      setImportResult(result);
+      load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Não foi possível importar o arquivo.');
+    } finally {
+      setImporting(false);
+    }
+  };
+
   return (
     <div>
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -99,13 +122,21 @@ export default function Estoque() {
           <h1 className="text-xl font-semibold text-ink">Estoque</h1>
           <p className="text-sm text-ink/60">Controle seus produtos e quantidades.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <a
             href="/api/products/export.csv"
             className="rounded-md border border-brand-200 bg-white px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50"
           >
             Exportar CSV
           </a>
+          <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={onImportFile} />
+          <button
+            onClick={onPickImportFile}
+            disabled={importing}
+            className="rounded-md border border-brand-200 bg-white px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50 disabled:opacity-60"
+          >
+            {importing ? 'Importando...' : 'Importar CSV'}
+          </button>
           <button
             onClick={() => setShowForm((v) => !v)}
             className="rounded-md bg-brand-700 px-3 py-2 text-sm font-medium text-white hover:bg-brand-800"
@@ -114,6 +145,28 @@ export default function Estoque() {
           </button>
         </div>
       </div>
+
+      {importResult && (
+        <div className="mb-4 rounded-md bg-brand-50 px-3 py-2 text-sm text-ink">
+          {importResult.imported} produto(s) importado(s) com sucesso
+          {importResult.skipped > 0 ? `, ${importResult.skipped} linha(s) ignorada(s).` : '.'}
+          {importResult.errors.length > 0 && (
+            <ul className="mt-1 list-disc pl-5 text-ink/70">
+              {importResult.errors.map((msg, i) => (
+                <li key={i}>{msg}</li>
+              ))}
+            </ul>
+          )}
+          <button onClick={() => setImportResult(null)} className="ml-2 font-medium text-brand-700 hover:underline">
+            fechar
+          </button>
+        </div>
+      )}
+      {error && <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      <p className="mb-4 -mt-2 text-xs text-ink/50">
+        Pra importar do Excel: abra sua planilha e use "Arquivo &gt; Salvar como &gt; CSV". Use colunas como Nome,
+        SKU, Quantidade, Estoque mínimo, Preço de compra, Preço de venda (o mesmo formato do "Exportar CSV" acima).
+      </p>
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-lg border border-brand-100 bg-white p-4">
@@ -134,7 +187,6 @@ export default function Estoque() {
 
       {showForm && (
         <form onSubmit={onCreate} className="mb-6 rounded-lg border border-brand-100 bg-white p-4">
-          {error && <div className="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <label className="text-sm">
               <span className="mb-1 block font-medium text-ink/80">Nome*</span>

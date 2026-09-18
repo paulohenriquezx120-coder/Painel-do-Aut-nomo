@@ -13,6 +13,7 @@ export type Product = {
 };
 
 export type ProductSummary = { total: number; lowStock: number; totalUnits: number };
+export type ImportResult = { imported: number; skipped: number; errors: string[] };
 
 export type Sale = {
   id: number;
@@ -121,6 +122,26 @@ export const api = {
       body: JSON.stringify({ delta }),
     }),
   deleteProduct: (id: number) => request<{ ok: true }>(`/products/${id}`, { method: 'DELETE' }),
+  importProducts: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch('/api/products/import', {
+      method: 'POST',
+      credentials: 'include',
+      body: formData,
+    });
+    if (!res.ok) {
+      let message = 'Não foi possível importar o arquivo.';
+      try {
+        const data = await res.json();
+        message = data.error || message;
+      } catch {
+        // ignore
+      }
+      throw new ApiError(message, res.status);
+    }
+    return res.json() as Promise<ImportResult>;
+  },
 
   listSales: (period: string) =>
     request<{ sales: Sale[]; summary: SalesSummary; ranking: RankingItem[] }>(
